@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F1 Racing 1v1 - Biến Ngẫu Nhiên Rời Rạc</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #1a1a1a;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #e10600; /* F1 Red */
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            text-align: center;
+        }
+
+        /* Sound Control Button */
+        .sound-btn {
+            background-color: #25d366;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        .sound-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .sound-btn.muted {
+            background-color: #777;
+        }
+
+        /* Track Container - 2 Lanes */
+        .track-container {
+            width: 100%;
+            max-width: 900px;
+            height: 200px;
+            background-color: #333;
+            border-top: 4px solid #fff;
+            border-bottom: 4px solid #fff;
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        /* Lane Separator */
+        .lane-mark {
+            position: absolute;
+            top: 50%;
+            width: 100%;
+            height: 4px;
+            border-top: 4px dashed #e5c100;
+        }
+
+        /* Start Line */
+        .start-line {
+            position: absolute;
+            left: 20px;
+            top: 0;
+            width: 15px;
+            height: 100%;
+            background: repeating-linear-gradient(0deg, #fff, #fff 10px, #000 10px, #000 20px);
+            opacity: 0.6;
+        }
+
+        /* Finish Line */
+        .finish-line {
+            position: absolute;
+            right: 20px;
+            top: 0;
+            width: 30px;
+            height: 100%;
+            background: repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 50% / 15px 15px;
+            border-left: 2px solid #fff;
+        }
+
+        /* Flip car emoji so it faces RIGHT */
+        .car-flip {
+            transform: scaleX(-1);
+            display: inline-block;
+        }
+
+        /* F1 Cars Base Style */
+        .f1-car {
+            position: absolute;
+            left: 40px;
+            font-size: 42px;
+            transition: left 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+            z-index: 10;
+            filter: drop-shadow(-2px 4px 6px rgba(0,0,0,0.6));
+            display: flex;
+            align-items: center;
+        }
+
+        /* Player Car Lane (Top) */
+        #playerCar {
+            top: 20px;
+        }
+
+        /* Opponent Car Lane (Bottom) */
+        #opponentCar {
+            top: 115px;
+        }
+
+        /* "BẠN" Indicator Label */
+        .you-label {
+            position: absolute;
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #25d366;
+            color: #000;
+            font-size: 0.75rem;
+            font-weight: 900;
+            padding: 2px 8px;
+            border-radius: 10px;
+            white-space: nowrap;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            animation: bounce 1s infinite alternate;
+        }
+
+        .you-label::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 5px 5px 0;
+            border-style: solid;
+            border-color: #25d366 transparent;
+            display: block;
+            width: 0;
+        }
+
+        /* Opponent Label */
+        .opponent-label {
+            position: absolute;
+            top: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #e10600;
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 8px;
+            white-space: nowrap;
+        }
+
+        @keyframes bounce {
+            0% { transform: translateX(-50%) translateY(0); }
+            100% { transform: translateX(-50%) translateY(-4px); }
+        }
+
+        /* Centered Flag & Meme Pop Effect */
+        .flag-pop {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 30;
+            text-align: center;
+            pointer-events: none;
+            width: 90%;
+        }
+
+        .flag-pop.active {
+            display: block;
+            animation: centerPopUp 2s ease-in-out forwards;
+        }
+
+        .flag-text {
+            background: rgba(37, 211, 102, 0.95);
+            color: #000;
+            font-weight: 900;
+            font-style: italic;
+            padding: 14px 28px;
+            border-radius: 30px;
+            border: 3px solid #fff;
+            font-size: 1.5rem;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.8);
+            display: inline-block;
+            letter-spacing: 1px;
+        }
+
+        .flag-text.wrong-pop {
+            background: rgba(180, 0, 0, 0.95) !important;
+            border-color: #ffeb3b !important;
+            color: #fff !important;
+        }
+
+        @keyframes centerPopUp {
+            0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+            15% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+            80% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+        }
+
+        /* Quiz Box */
+        .quiz-container {
+            width: 100%;
+            max-width: 900px;
+            background: #2b2b2b;
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 6px solid #e10600;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+        }
+
+        .question-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #f1f1f1;
+            line-height: 1.5;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .btn-option {
+            background-color: #3d3d3d;
+            color: #fff;
+            border: 2px solid #555;
+            padding: 14px 20px;
+            font-size: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+
+        .btn-option:hover {
+            background-color: #4a4a4a;
+            border-color: #888;
+        }
+
+        .btn-option.correct {
+            background-color: #2e7d32 !important;
+            border-color: #4caf50 !important;
+        }
+
+        .btn-option.wrong {
+            background-color: #c62828 !important;
+            border-color: #ef5350 !important;
+        }
+
+        /* Result Screen */
+        .result-screen {
+            display: none;
+            text-align: center;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .result-screen h2 {
+            font-size: 2.2rem;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .win-title { color: #4caf50; }
+        .lose-title { color: #e10600; }
+
+        .meme-center-text {
+            color: #ffeb3b;
+            font-size: 1.5rem;
+            font-weight: 900;
+            font-style: italic;
+            margin: 15px 0;
+            text-shadow: 2px 2px 8px rgba(225, 6, 0, 0.8);
+            letter-spacing: 1px;
+        }
+
+        .class-text {
+            color: #ffffff;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+            line-height: 1.6;
+        }
+
+        .btn-restart {
+            margin-top: 10px;
+            padding: 12px 30px;
+            background-color: #e10600;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-restart:hover {
+            background-color: #b30500;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🏎️ F1 RACING 1V1: ĐỐI KHÁNG TỐC ĐỘ 🏁</h1>
+    
+    <!-- Sound Toggle -->
+    <button id="toggleSoundBtn" class="sound-btn" onclick="toggleSound()">🔊 Nhạc & Âm Thanh: BẬT</button>
+
+    <!-- Track Container -->
+    <div class="track-container">
+        <div class="lane-mark"></div>
+        <div class="start-line"></div>
+        <div class="finish-line"></div>
+        
+        <!-- Player Car (Top Lane) -->
+        <div id="playerCar" class="f1-car">
+            <span class="you-label">⬇️ BẠN</span>
+            <span class="car-flip">🏎️</span>
+        </div>
+
+        <!-- Opponent Car (Bottom Lane) -->
+        <div id="opponentCar" class="f1-car">
+            <span class="opponent-label">ĐỐI THỦ</span>
+            <span class="car-flip">🏎️</span>
+        </div>
+        
+        <!-- Centered Effect Flag & Dynamic Text -->
+        <div id="flagPop" class="flag-pop">
+            <span id="flagText" class="flag-text">🚀 BỨT PHÁ TỐC ĐỘ! 💨</span>
+        </div>
+    </div>
+
+    <!-- Quiz Panel -->
+    <div class="quiz-container" id="quizBox">
+        <div id="question" class="question-title">Đang tải câu hỏi...</div>
+        <div id="options" class="options-grid"></div>
+    </div>
+
+    <!-- Result Panel -->
+    <div class="quiz-container result-screen" id="resultBox" style="display: none;">
+        <h2 id="resultTitle" class="win-title">🏆 CHÚC MỪNG VỀ ĐÍCH! 🏆</h2>
+        <div class="meme-center-text" id="resultMemeText">🚀 TỐC ĐỘ BỨT PHÁ BÌNH MẠNH NHẤT! 🏎️💨</div>
+        <p class="class-text" id="resultDesc">Xin chúc mừng đội đua lớp <strong>12A16</strong> đã xuất sắc trở thành đội đua về đích nhanh nhất!</p>
+        <button class="btn-restart" onclick="restartGame()">Chơi Lại</button>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                q: "Câu 1: Một biến ngẫu nhiên X được gọi là biến ngẫu nhiên rời rạc khi nào?",
+                options: [
+                    "A. Tập hợp các giá trị có thể có của X là vô hạn không đếm được",
+                    "B. Tập hợp các giá trị có thể có của X là hữu hạn (hoặc đếm được)",
+                    "C. X chỉ nhận các giá trị âm",
+                    "D. X nhận mọi giá trị trên một khoảng số thực"
+                ],
+                correct: 1,
+                cheerText: "🚀 BỨT PHÁ TỐC ĐỘ! 💨"
+            },
+            {
+                q: "Câu 2: Tổng các xác suất P(X = xi) trong một bảng phân bố xác suất của biến ngẫu nhiên rời rạc X luôn luôn bằng bao nhiêu?",
+                options: [
+                    "A. 0",
+                    "B. 0.5",
+                    "C. 1",
+                    "D. 100"
+                ],
+                correct: 2,
+                cheerText: "🔥 NẠP NITRO TĂNG TỐC! 🏎️💨"
+            },
+            {
+                q: "Câu 3: Gieo một con xúc xắc cân đối 6 mặt 1 lần. Gọi X là số chấm xuất hiện trên mặt con xúc xắc. Tập hợp các giá trị có thể có của X là gì?",
+                options: [
+                    "A. {1; 2; 3; 4; 5; 6}",
+                    "B. {0; 1; 2; 3; 4; 5; 6}",
+                    "C. {1; 6}",
+                    "D. {0; 6}"
+                ],
+                correct: 0,
+                cheerText: "⚡ TÊN LỬA VÚT ĐI! 🚀"
+            },
+            {
+                q: "Câu 4: Cho biến ngẫu nhiên rời rạc X có bảng phân bố xác suất: các giá trị X = 1, 2, 3, 4 có xác suất tương ứng là 0,1; 0,2; 0,3 và a. Giá trị của a là bao nhiêu?",
+                options: [
+                    "A. a = 0.3",
+                    "B. a = 0.4",
+                    "C. a = 0.5",
+                    "D. a = 0.6"
+                ],
+                correct: 1,
+                cheerText: "🏁 VƯỢT MẶT ĐỐI THỦ! 🏆"
+            },
+            {
+                q: "Câu 5: Trong hộp có 2 thẻ Đỏ và 2 thẻ Xanh. Lấy ngẫu nhiên 1 thẻ. Gọi X là số thẻ Đỏ lấy được (X nhận giá trị 0 hoặc 1). Xác suất P(X = 1) là bao nhiêu?",
+                options: [
+                    "A. 1/4",
+                    "B. 1/3",
+                    "C. 1/2",
+                    "D. 1"
+                ],
+                correct: 2,
+                cheerText: "👑 VỀ ĐÍCH CỰC ĐỈNH! 🥇"
+            }
+        ];
+
+        let currentQ = 0;
+        let playerPos = 40;
+        let opponentPos = 40;
+        let isSoundEnabled = true;
+
+        const questionEl = document.getElementById("question");
+        const optionsEl = document.getElementById("options");
+        const playerCar = document.getElementById("playerCar");
+        const opponentCar = document.getElementById("opponentCar");
+        const flagPop = document.getElementById("flagPop");
+        const flagText = document.getElementById("flagText");
+        const quizBox = document.getElementById("quizBox");
+        const resultBox = document.getElementById("resultBox");
+        const toggleSoundBtn = document.getElementById("toggleSoundBtn");
+
+        function toggleSound() {
+            isSoundEnabled = !isSoundEnabled;
+            if (isSoundEnabled) {
+                toggleSoundBtn.textContent = "🔊 Nhạc & Âm Thanh: BẬT";
+                toggleSoundBtn.classList.remove("muted");
+            } else {
+                toggleSoundBtn.textContent = "🔇 Nhạc & Âm Thanh: TẮT";
+                toggleSoundBtn.classList.add("muted");
+            }
+        }
+
+        // Âm thanh xe F1 tăng tốc / tên lửa vút đi khi ĐÚNG
+        function playCorrectSound() {
+            if (!isSoundEnabled) return;
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Tiếng động cơ gầm hú vút cao
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(250, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1600, ctx.currentTime + 0.5);
+                osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.9);
+                
+                gain.gain.setValueAtTime(0.4, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.9);
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.start();
+                osc.stop(ctx.currentTime + 0.9);
+
+                // Tiếng xé gió
+                const bufferSize = ctx.sampleRate * 0.5;
+                const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const output = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+                const whiteNoise = ctx.createBufferSource();
+                whiteNoise.buffer = buffer;
+
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(500, ctx.currentTime);
+                filter.frequency.exponentialRampToValueAtTime(3000, ctx.currentTime + 0.5);
+
+                const noiseGain = ctx.createGain();
+                noiseGain.gain.setValueAtTime(0.2, ctx.currentTime);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+
+                whiteNoise.connect(filter);
+                filter.connect(noiseGain);
+                noiseGain.connect(ctx.destination);
+
+                whiteNoise.start();
+                whiteNoise.stop(ctx.currentTime + 0.5);
+
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        // Âm thanh phanh rít lốp khi SAI
+        function playWrongSound() {
+            if (!isSoundEnabled) return;
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(900, ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(120, ctx.currentTime + 0.5);
+                
+                gain.gain.setValueAtTime(0.4, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.start();
+                osc.stop(ctx.currentTime + 0.5);
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        function loadQuestion() {
+            const q = questions[currentQ];
+            questionEl.textContent = q.q;
+            optionsEl.innerHTML = "";
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement("button");
+                btn.className = "btn-option";
+                btn.textContent = opt;
+                btn.onclick = () => checkAnswer(idx, btn);
+                optionsEl.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedIdx, btn) {
+            const currentObj = questions[currentQ];
+            const correctIdx = currentObj.correct;
+            const allBtns = optionsEl.querySelectorAll(".btn-option");
+
+            // Khóa các nút tạm thời
+            allBtns.forEach(b => b.style.pointerEvents = "none");
+
+            if (selectedIdx === correctIdx) {
+                // CHỌN ĐÚNG
+                btn.classList.add("correct");
+                
+                flagText.classList.remove("wrong-pop");
+                flagText.textContent = currentObj.cheerText;
+
+                playerPos += 140;
+                playerCar.style.left = playerPos + "px";
+
+                playCorrectSound();
+
+                // Hiện Pop-up
+                setTimeout(() => {
+                    flagPop.classList.remove("active");
+                    void flagPop.offsetWidth;
+                    flagPop.classList.add("active");
+                }, 100);
+
+                // Chuyển sang câu tiếp theo
+                setTimeout(() => {
+                    flagPop.classList.remove("active");
+                    currentQ++;
+                    if (currentQ < questions.length) {
+                        loadQuestion();
+                    } else {
+                        finishGame();
+                    }
+                }, 2000);
+
+            } else {
+                // CHỌN SAI
+                btn.classList.add("wrong");
+
+                flagText.classList.add("wrong-pop");
+                flagText.textContent = "⚠️ ĐỐI THỦ ĐÃ VƯỢT LÊN! ⚠️";
+
+                opponentPos += 140;
+                opponentCar.style.left = opponentPos + "px";
+
+                playWrongSound();
+
+                // Hiện Pop-up
+                setTimeout(() => {
+                    flagPop.classList.remove("active");
+                    void flagPop.offsetWidth;
+                    flagPop.classList.add("active");
+                }, 100);
+
+                // Cho phép chọn lại
+                setTimeout(() => {
+                    flagPop.classList.remove("active");
+                    allBtns.forEach(b => {
+                        if (!b.classList.contains("wrong")) {
+                            b.style.pointerEvents = "auto";
+                        }
+                    });
+                }, 1800);
+            }
+        }
+
+        function finishGame() {
+            quizBox.style.display = "none";
+            resultBox.style.display = "flex";
+
+            const resultTitle = document.getElementById("resultTitle");
+            const resultMemeText = document.getElementById("resultMemeText");
+            const resultDesc = document.getElementById("resultDesc");
+
+            if (playerPos >= opponentPos) {
+                resultTitle.className = "win-title";
+                resultTitle.textContent = "🏆 CHÚC MỪNG VỀ ĐÍCH VÔ ĐỊCH! 🏆";
+                resultMemeText.textContent = "🚀 TỐC ĐỘ BỨT PHÁ MẠNH NHẤT! 🏎️💨";
+                resultDesc.innerHTML = "Xin chúc mừng đội đua lớp <strong>12A16</strong> đã xuất sắc trở thành đội đua về đích nhanh nhất!";
+            } else {
+                resultTitle.className = "lose-title";
+                resultTitle.textContent = "💔 ĐỐI THỦ ĐÃ VỀ ĐÍCH TRƯỚC! 💔";
+                resultMemeText.textContent = "⚠️ HÃY THỬ LẠI ĐỂ ĐÁNH BẠI ĐỐI THỦ! 🏎️💨";
+                resultDesc.innerHTML = "Đội đua lớp <strong>12A16</strong> cần cố gắng hơn ở lượt đua tiếp theo!";
+            }
+        }
+
+        function restartGame() {
+            currentQ = 0;
+            playerPos = 40;
+            opponentPos = 40;
+            playerCar.style.left = playerPos + "px";
+            opponentCar.style.left = opponentPos + "px";
+            resultBox.style.display = "none";
+            quizBox.style.display = "block";
+            loadQuestion();
+        }
+
+        loadQuestion();
+    </script>
+</body>
+</html>
